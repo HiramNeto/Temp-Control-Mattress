@@ -28,6 +28,7 @@
 #define TASKID_TEMPSENSORS      1
 #define TASKID_PRESSURESENSORS  2
 #define TASKID_PWMMOSFETS       3
+#define TASKID_FANCTRL          4
 
 //Protection threshold values
 #define PELTIER_HOTSIDE_MAXTEMP 80

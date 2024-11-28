@@ -194,6 +194,31 @@ uint16_t findMaxPwm(uint16_t l_pwm1_u16,uint16_t l_pwm2_u16,uint16_t l_pwm3_u16)
     return l_returnPwm_u16;
 }
 
+uint16_t checkEmergencyConditions(ControllerParameters *functionLocalControllerParameters){
+    bool peltierTooHot_b;
+    bool peltierTooCold_b;
+    bool heatExchangerTempSensorUnavailable_b;
+    bool peltierWarningTemp_b;
+    bool tankTempFail_b;
+
+    uint16_t l_returnValue_u16;
+
+    readProtectedVariable(peltierTooHot_b, &functionLocalControllerParameters->emergencyFlags.peltierTooHot_b, &functionLocalControllerParameters->mutexes.peltierTooHotEmergencyFlag_mutex);
+    readProtectedVariable(peltierTooCold_b, &functionLocalControllerParameters->emergencyFlags.peltierTooCold_b, &functionLocalControllerParameters->mutexes.peltierTooColdEmergencyFlag_mutex);
+    readProtectedVariable(heatExchangerTempSensorUnavailable_b, &functionLocalControllerParameters->emergencyFlags.heatExchangerTempSensorUnavailable_b, &functionLocalControllerParameters->mutexes.heatExchangerTempSensorUnavailableFlag_mutex);
+    readProtectedVariable(peltierWarningTemp_b, &functionLocalControllerParameters->emergencyFlags.peltierWarningTemp_b, &functionLocalControllerParameters->mutexes.peltierWarningTempEmergencyFlag_mutex);
+    readProtectedVariable(tankTempFail_b, &functionLocalControllerParameters->emergencyFlags.tankTempFail_b, &functionLocalControllerParameters->mutexes.tankWaterTempFailedEmergencyFlag_mutex);
+
+    if(peltierTooHot_b || peltierTooCold_b || heatExchangerTempSensorUnavailable_b || peltierWarningTemp_b){
+        l_returnValue_u16 = 100;
+        char message[DEBUG_BUFFER_SIZE];
+        snprintf(message, DEBUG_BUFFER_SIZE, "FAN turned 100% because of emergency protection");
+        logDebugMessage(message, TASKID_FANCTRL);
+    }else{
+        l_returnValue_u16 = 0;
+    }
+}
+
 void fanCtrlTask(void* functionInputParam){
     //Variables for the task
     ControllerParameters *functionLocalControllerParameters = (ControllerParameters*)functionInputParam;
@@ -202,16 +227,31 @@ void fanCtrlTask(void* functionInputParam){
 
     //Loop
     while(1){
+        char message[DEBUG_BUFFER_SIZE];
+
         //Loop task!
         //1) Feed-Forward (depending on the power applied to the peltier cells)
         uint16_t l_feedForwardPWM_u16 = feedForward(functionLocalControllerParameters);
+        snprintf(message, DEBUG_BUFFER_SIZE, "FAN Feedforward PWM: %u",l_feedForwardPWM_u16);
+        logDebugMessage(message, TASKID_FANCTRL);
         //2) Proportional to deltaT
         uint16_t l_deltaTPWM_u16 = proportionalDeltaT(functionLocalControllerParameters);
+        snprintf(message, DEBUG_BUFFER_SIZE, "FAN deltaT PWM: %u",l_deltaTPWM_u16);
+        logDebugMessage(message, TASKID_FANCTRL);
         //3) Proportional to heat exchanger temp (depending if the systems is cooling or heating the water)
         uint16_t l_heatSinkPWM_u16 = proportionalHeatSinkT(functionLocalControllerParameters);
+        snprintf(message, DEBUG_BUFFER_SIZE, "FAN Heat Sink Temp. PWM: %u",l_heatSinkPWM_u16);
+        logDebugMessage(message, TASKID_FANCTRL);
 
         //Apply the maximum value to the FANs
         uint16_t l_pwmToApply_u16 = findMaxPwm(l_feedForwardPWM_u16,l_deltaTPWM_u16,l_heatSinkPWM_u16);
+        snprintf(message, DEBUG_BUFFER_SIZE, "PWM applied to FAN power mosfet: %u",l_pwmToApply_u16);
+        logDebugMessage(message, TASKID_FANCTRL);
+
+        if(!writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerFansPercent_f, (float)l_pwmToApply_u16, &functionLocalControllerParameters->mutexes.heatExchangerFansPercent_mutex)){
+            snprintf(message, DEBUG_BUFFER_SIZE, "Cannot set fan ctrl pwm to the actuator");
+            logDebugMessage(message, TASKID_FANCTRL);
+        }
 
         vTaskDelay(1000/portTICK_RATE_MS);
     }

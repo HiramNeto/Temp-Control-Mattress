@@ -18,11 +18,16 @@ void overheatingProtection(ControllerParameters* functionLocalControllerParamete
 void condensationProtection(ControllerParameters* functionLocalControllerParameters);
 void tempControl(ControllerParameters* functionLocalControllerParameters);
 void setupFuzzyController();
-int mapearParaNiveisDiscretos(float saida) ;
-void aplicarControle(int nivelPotencia, ControllerParameters *functionLocalControllerParameters);
-
+int mapDiscreteLevels(float saida) ;
+void applyControl(int powerLevel, ControllerParameters *functionLocalControllerParameters);
 
 void actuatePeltierCells(ControllerParameters *functionLocalControllerParameters, uint8_t l_desiredPower_u8){
+    char message[DEBUG_BUFFER_SIZE];
+        
+    //Warning temp protection, cap power to 50% maximum...
+    bool peltierWarningTemp_b;
+    readProtectedVariable(peltierWarningTemp_b, &functionLocalControllerParameters->emergencyFlags.peltierWarningTemp_b, &functionLocalControllerParameters->mutexes.peltierWarningTempEmergencyFlag_mutex);
+    
     switch(l_desiredPower_u8){
         default:
         case PELTIER_POWER_OFF:{
@@ -49,15 +54,30 @@ void actuatePeltierCells(ControllerParameters *functionLocalControllerParameters
         case PELTIER_POWER_COOLING_LV3:{
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier1_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier1_mutex);
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier2_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier2_mutex);
-            writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+            //if warning temp is set, only allow 50% power on peltiers...
+            if(!peltierWarningTemp_b){
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+            }else{
+                snprintf(message, DEBUG_BUFFER_SIZE, "Cooling set to 75%, but system is capped to 50% because of temperature warning!");
+                logDebugMessage(message, TASKID_TEMPCTRL);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+            }
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
             writeProtectedVariable(functionLocalControllerParameters->statuses.tempCtrlUnitStatus_u8, (uint8_t)TEMPCTRL_COOLING_3, &functionLocalControllerParameters->mutexes.tempCtrlUnitStatus_mutex);
         }break;
         case PELTIER_POWER_COOLING_LV4:{
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier1_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier1_mutex);
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier2_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier2_mutex);
-            writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
-            writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
+            //if warning temp is set, only allow 50% power on peltiers...
+            if(!peltierWarningTemp_b){
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_COOLING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
+            }else{
+                snprintf(message, DEBUG_BUFFER_SIZE, "Cooling set to 100%, but system is capped to 50% because of temperature warning!");
+                logDebugMessage(message, TASKID_TEMPCTRL);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
+            }
             writeProtectedVariable(functionLocalControllerParameters->statuses.tempCtrlUnitStatus_u8, (uint8_t)TEMPCTRL_COOLING_4, &functionLocalControllerParameters->mutexes.tempCtrlUnitStatus_mutex);
         }break;
         case PELTIER_POWER_HEATING_LV1:{
@@ -77,25 +97,56 @@ void actuatePeltierCells(ControllerParameters *functionLocalControllerParameters
         case PELTIER_POWER_HEATING_LV3:{
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier1_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier1_mutex);
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier2_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier2_mutex);
-            writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+            //if warning temp is set, only allow 50% power on peltiers...
+            if(!peltierWarningTemp_b){
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+            }else{
+                snprintf(message, DEBUG_BUFFER_SIZE, "Heating set to 75%, but system is capped to 50% because of temperature warning!");
+                logDebugMessage(message, TASKID_TEMPCTRL);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+            }
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
             writeProtectedVariable(functionLocalControllerParameters->statuses.tempCtrlUnitStatus_u8, (uint8_t)TEMPCTRL_HEATING_3, &functionLocalControllerParameters->mutexes.tempCtrlUnitStatus_mutex);
         }break;
         case PELTIER_POWER_HEATING_LV4:{
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier1_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier1_mutex);
             writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier2_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier2_mutex);
-            writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
-            writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
+            if(!peltierWarningTemp_b){
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_HEATING_ON, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
+            }else{
+                snprintf(message, DEBUG_BUFFER_SIZE, "Heating set to 100%, but system is capped to 50% because of temperature warning!");
+                logDebugMessage(message, TASKID_TEMPCTRL);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier3_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier3_mutex);
+                writeProtectedVariable(functionLocalControllerParameters->actuators.heatExchangerPeltier4_u8, (uint8_t)PELTIER_OFF, &functionLocalControllerParameters->mutexes.heatExchangerPeltier4_mutex);
+            }
             writeProtectedVariable(functionLocalControllerParameters->statuses.tempCtrlUnitStatus_u8, (uint8_t)TEMPCTRL_HEATING_4, &functionLocalControllerParameters->mutexes.tempCtrlUnitStatus_mutex);
         }break;
     }
 }
 
 void overheatingProtection(ControllerParameters* functionLocalControllerParameters){
+    char message[DEBUG_BUFFER_SIZE];
+
     //Monitor Peltier hot side temperature - Overheating protection
     float l_heatExchangerHotSideTemp_f;
     if (readProtectedVariable(l_heatExchangerHotSideTemp_f, &functionLocalControllerParameters->sensors.heatExchangerHotSideTemp_f, &functionLocalControllerParameters->mutexes.heatExchangerHotSideTemp_mutex)) {
+        if(l_heatExchangerHotSideTemp_f == UNDEFINED_FLOAT){
+            snprintf(message, DEBUG_BUFFER_SIZE, "Heat exchanger hot side temperature undefined! Overheating protection function interrupted.\n");
+            logDebugMessage(message, TASKID_TEMPCTRL);
+            writeProtectedVariable(functionLocalControllerParameters->emergencyFlags.heatExchangerTempSensorUnavailable_b, true, &functionLocalControllerParameters->mutexes.heatExchangerTempSensorUnavailableFlag_mutex);
+            writeProtectedVariable(functionLocalControllerParameters->emergencyFlags.peltierTooHot_b, false, &functionLocalControllerParameters->mutexes.peltierTooHotEmergencyFlag_mutex);
+            writeProtectedVariable(functionLocalControllerParameters->emergencyFlags.peltierWarningTemp_b, false, &functionLocalControllerParameters->mutexes.peltierWarningTempEmergencyFlag_mutex);    
+            return;
+        }else{
+            writeProtectedVariable(functionLocalControllerParameters->emergencyFlags.heatExchangerTempSensorUnavailable_b, false, &functionLocalControllerParameters->mutexes.heatExchangerTempSensorUnavailableFlag_mutex);
+        }
+
         if(l_heatExchangerHotSideTemp_f>PELTIER_HOTSIDE_MAXTEMP){
+            snprintf(message, DEBUG_BUFFER_SIZE, "Heat exchanger temperature: %f.\n",l_heatExchangerHotSideTemp_f);
+            logDebugMessage(message, TASKID_TEMPCTRL);
+            snprintf(message, DEBUG_BUFFER_SIZE, "Heat exchanger HotSide Temperature bigger than limit! Overheating protection!.\n");
+            logDebugMessage(message, TASKID_TEMPCTRL);
             //Overheat protection: too hot true, warning temp false
             writeProtectedVariable(functionLocalControllerParameters->emergencyFlags.peltierTooHot_b, true, &functionLocalControllerParameters->mutexes.peltierTooHotEmergencyFlag_mutex);
             writeProtectedVariable(functionLocalControllerParameters->emergencyFlags.peltierWarningTemp_b, false, &functionLocalControllerParameters->mutexes.peltierWarningTempEmergencyFlag_mutex);    
@@ -105,6 +156,8 @@ void overheatingProtection(ControllerParameters* functionLocalControllerParamete
             //Check warning temp
             if(l_heatExchangerHotSideTemp_f>PELTIER_HOTSIDE_WARNINGTEMP){
                 //Overheat warning protection: warning temp true
+                snprintf(message, DEBUG_BUFFER_SIZE, "Heat exchanger HotSide Temperature bigger than warning threshold! Warning!.\n");
+                logDebugMessage(message, TASKID_TEMPCTRL);
                 writeProtectedVariable(functionLocalControllerParameters->emergencyFlags.peltierWarningTemp_b, true, &functionLocalControllerParameters->mutexes.peltierWarningTempEmergencyFlag_mutex);    
             }else{
                 //warning temp false
@@ -139,11 +192,11 @@ void condensationProtection(ControllerParameters* functionLocalControllerParamet
     }
 }
 
-// Instância do controlador fuzzy
+//Fuzzy controller instance
 Fuzzy* fuzzy = new Fuzzy();
 
-// Níveis de potência permitidos
-int niveisPotencia[] = {-100, -75, -50, -25, 0, 25, 50, 75, 100};
+//Allowed power levels
+int powerLevels[] = {-100, -75, -50, -25, 0, 25, 50, 75, 100};
 
 void setupFuzzyController(){
     // Definição das variáveis fuzzy
@@ -215,9 +268,40 @@ void setupFuzzyController(){
 }
 
 void tempControl(ControllerParameters* functionLocalControllerParameters){
-    float l_erro_f = 0.0;
-    float l_deltaErro_f = 0.0;
-    static float ls_erro_anterior_f = 0.0;
+    // verify emergency flags
+    bool peltierTooHot_b;
+    bool peltierTooCold_b;
+    bool heatExchangerTempSensorUnavailable_b;
+    readProtectedVariable(peltierTooHot_b, &functionLocalControllerParameters->emergencyFlags.peltierTooHot_b, &functionLocalControllerParameters->mutexes.peltierTooHotEmergencyFlag_mutex);
+    readProtectedVariable(peltierTooCold_b, &functionLocalControllerParameters->emergencyFlags.peltierTooCold_b, &functionLocalControllerParameters->mutexes.peltierTooColdEmergencyFlag_mutex);
+    readProtectedVariable(heatExchangerTempSensorUnavailable_b, &functionLocalControllerParameters->emergencyFlags.heatExchangerTempSensorUnavailable_b, &functionLocalControllerParameters->mutexes.heatExchangerTempSensorUnavailableFlag_mutex);
+    
+    
+    if(peltierTooHot_b || peltierTooCold_b || heatExchangerTempSensorUnavailable_b){
+        //shut down Peltier modules
+        actuatePeltierCells(functionLocalControllerParameters, PELTIER_POWER_OFF);
+        //log error message
+        char message[DEBUG_BUFFER_SIZE];
+        if(peltierTooHot_b){
+            snprintf(message, DEBUG_BUFFER_SIZE, "Emergency condition (peltier too hot) detected. Peltier modules are turned off.\n");
+            logDebugMessage(message, TASKID_TEMPCTRL);
+        }
+        if(peltierTooCold_b){
+            snprintf(message, DEBUG_BUFFER_SIZE, "Emergency condition (peltier too cold) detected. Peltier modules are turned off.\n");
+            logDebugMessage(message, TASKID_TEMPCTRL);
+        }
+        if(heatExchangerTempSensorUnavailable_b){
+            snprintf(message, DEBUG_BUFFER_SIZE, "Emergency condition (heat exchanger temp unavailable) detected. Peltier modules are turned off.\n");
+            logDebugMessage(message, TASKID_TEMPCTRL);
+        }
+        //return function, interrupt temp controller
+        return;
+    }
+    
+    
+    float l_error_f = 0.0;
+    float l_deltaError_f = 0.0;
+    static float ls_previous_error_f = 0.0;
         
     //Controls tank temperature for a given setpoint
     float l_tankWaterTemp_f;
@@ -268,27 +352,27 @@ void tempControl(ControllerParameters* functionLocalControllerParameters){
     }
     if(l_controllerShouldRun_b){
 
-        // Cálculo do erro e da variação do erro
-        l_erro_f = l_tankWaterTempSetpoint_f - l_tankWaterTemp_f;
-        l_deltaErro_f = l_erro_f - ls_erro_anterior_f;
-        // Atualização do erro anterior
-        ls_erro_anterior_f = l_erro_f;
+        //Error and error deviation calculation
+        l_error_f = l_tankWaterTempSetpoint_f - l_tankWaterTemp_f;
+        l_deltaError_f = l_error_f - ls_previous_error_f;
+        //Previous Error update
+        ls_previous_error_f = l_error_f;
 
-        // Definição das entradas fuzzy
-        fuzzy->setInput(1, l_erro_f);
-        fuzzy->setInput(2, l_deltaErro_f);
+        //Fuzzy input definitions
+        fuzzy->setInput(1, l_error_f);
+        fuzzy->setInput(2, l_deltaError_f);
 
-        // Processamento fuzzy
+        //Fuzzy Processing
         fuzzy->fuzzify();
 
-        // Obtenção da saída
-        float saidaFuzzy = fuzzy->defuzzify(1);
+        //Get fuzzy output
+        float fuzzyOutput = fuzzy->defuzzify(1);
 
-        // Mapeamento para níveis discretos
-        int nivelPotencia = mapearParaNiveisDiscretos(saidaFuzzy);
+        //Map to discrete levels
+        int powerLevel = mapDiscreteLevels(fuzzyOutput);
 
-        // Aplicação do controle
-        aplicarControle(nivelPotencia,functionLocalControllerParameters);
+        //Apply fuzzy control to the actuator
+        applyControl(powerLevel,functionLocalControllerParameters);
 
     }else{
         //Disable all peltier outputs
@@ -296,23 +380,23 @@ void tempControl(ControllerParameters* functionLocalControllerParameters){
     }
 }
 
-// Função para mapear a saída fuzzy para os níveis discretos do atuador
-int mapearParaNiveisDiscretos(float saida) {
-  int nivelProximo = niveisPotencia[0];
-  float menorDiferenca = abs(saida - niveisPotencia[0]);
-  for (int i = 1; i < sizeof(niveisPotencia) / sizeof(niveisPotencia[0]); i++) {
-    float diferenca = abs(saida - niveisPotencia[i]);
-    if (diferenca < menorDiferenca) {
-      menorDiferenca = diferenca;
-      nivelProximo = niveisPotencia[i];
+//Function to map the fuzzy putput to actuator discrete levels
+int mapDiscreteLevels(float output) {
+  int nextLevel = powerLevels[0];
+  float smallerDifference = abs(output - powerLevels[0]);
+  for (int i = 1; i < sizeof(powerLevels) / sizeof(powerLevels[0]); i++) {
+    float difference = abs(output - powerLevels[i]);
+    if (difference < smallerDifference) {
+      smallerDifference = difference;
+      nextLevel = powerLevels[i];
     }
   }
-  return nivelProximo;
+  return nextLevel;
 }
 
-// Função para aplicar o controle ao atuador
-void aplicarControle(int nivelPotencia, ControllerParameters *functionLocalControllerParameters) {
-  switch(nivelPotencia){
+//Function to apply control to the actuator
+void applyControl(int powerLevel, ControllerParameters *functionLocalControllerParameters) {
+  switch(powerLevel){
     default:
     case 0:{
         actuatePeltierCells(functionLocalControllerParameters,PELTIER_POWER_OFF);

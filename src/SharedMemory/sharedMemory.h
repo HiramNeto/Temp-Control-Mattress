@@ -40,6 +40,7 @@ struct Setpoints{
 
 struct EmergencyFlags{
   boolean peltierWarningTemp_b;
+  boolean heatExchangerTempSensorUnavailable_b;
   boolean peltierTooHot_b;
   boolean peltierTooCold_b;
   boolean heatExchangerBlockage_b;
@@ -79,6 +80,7 @@ struct SharedVariablesAccessControls{
   SemaphoreHandle_t heatExchangerBlockageEmergencyFlag_mutex = NULL;
   SemaphoreHandle_t mattressBlockageEmergencyFlag_mutex = NULL;
   SemaphoreHandle_t tankWaterTempFailedEmergencyFlag_mutex = NULL;
+  SemaphoreHandle_t heatExchangerTempSensorUnavailableFlag_mutex = NULL;
   //Statuses Mutex
   SemaphoreHandle_t tempCtrlUnitStatus_mutex = NULL;
 };

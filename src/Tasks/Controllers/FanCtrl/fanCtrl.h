@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "../../../SharedMemory/sharedMemory.h"
 #include "../../../Constants/constants.h"
+#include "../../../Tasks/Debug/debug.h"
 
 void fanCtrlTask(void*);
 

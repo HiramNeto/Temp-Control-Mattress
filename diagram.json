@@ -9,28 +9,28 @@
       "id": "tempSensor1",
       "top": -135.53,
       "left": -224.88,
-      "attrs": { "device_id": "9F9D876799C4F707" }
+      "attrs": { "deviceID": "9F9D876799C4" }
     },
     {
       "type": "board-ds18b20",
       "id": "tempSensor2",
       "top": -115.53,
       "left": -264.88,
-      "attrs": { "device_id": "9F9D876799C4F708" }
+      "attrs": { "deviceID": "9F9D876799C5" }
     },
     {
       "type": "board-ds18b20",
       "id": "tempSensor3",
       "top": -95.53,
       "left": -304.88,
-      "attrs": { "device_id": "9F9D876799C4F709" }
+      "attrs": { "deviceID": "9F9D876799C6" }
     },
     {
       "type": "board-ds18b20",
       "id": "tempSensor4",
       "top": -75.53,
       "left": -344.88,
-      "attrs": { "device_id": "9F9D876799C4F70A" }
+      "attrs": { "deviceID": "9F9D876799C7" }
     },
     { "type": "wokwi-resistor", "id": "r1", "top": 18, "left": -65, "attrs": { "value": "1000" } },
     {
@@ -212,11 +212,7 @@
     [ "tempSensor3:VCC", "esp:3V3", "red", [] ],
     [ "tempSensor4:VCC", "esp:3V3", "red", [] ],
     [ "r1:2", "esp:3V3", "red", [] ],
-    [ "r1:1", "tempSensor1:DQ", "blue", [] ],
     [ "tempSensor1:DQ", "esp:25", "blue", [ "v192", "h214.37" ] ],
-    [ "tempSensor2:DQ", "esp:25", "blue", [ "v172", "h254.37" ] ],
-    [ "tempSensor3:DQ", "esp:25", "blue", [ "v152", "h294.37" ] ],
-    [ "tempSensor4:DQ", "esp:25", "blue", [ "v132", "h334.37" ] ],
     [ "tempSensor4:GND", "esp:GND.1", "black", [ "v0" ] ],
     [ "tempSensor3:GND", "esp:GND.1", "black", [ "v0" ] ],
     [ "tempSensor2:GND", "esp:GND.1", "black", [ "v0" ] ],
@@ -269,7 +265,11 @@
     [ "esp:GND.2", "r12:1", "black", [ "v0", "h14.44", "v604.8" ] ],
     [ "esp:33", "led9:A", "green", [ "h-187.01", "v662.4", "h556.8", "v-192" ] ],
     [ "esp:0", "led10:A", "green", [ "h360.04", "v460.8", "h-163.2" ] ],
-    [ "esp:2", "led11:A", "green", [ "h388.84", "v480" ] ]
+    [ "esp:2", "led11:A", "green", [ "h388.84", "v480" ] ],
+    [ "r1:1", "tempSensor1:DQ", "green", [ "v-4.45", "h-146.2" ] ],
+    [ "tempSensor1:DQ", "tempSensor2:DQ", "green", [ "v105.6", "h-30.24" ] ],
+    [ "tempSensor1:DQ", "tempSensor3:DQ", "green", [ "v105.6", "h-78.24" ] ],
+    [ "tempSensor3:DQ", "tempSensor4:DQ", "green", [ "v65.6", "h-36.64" ] ]
   ],
   "dependencies": {}
 }

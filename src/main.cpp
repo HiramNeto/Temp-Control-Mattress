@@ -47,7 +47,7 @@ void setup() {
   initializeMutexes(&controllerParameters);
   initializeControllerVariables(&controllerParameters);
   delay(100);
-  xTaskCreatePinnedToCore(&print_task,"PRINT_TASK",4096,(void*)&controllerParameters,1,NULL,0);
+  xTaskCreatePinnedToCore(&print_task,"PRINT_TASK",12288,(void*)&controllerParameters,1,NULL,0);
   delay(500);
   initTemperatureSensors();
   initPowerMosfets();

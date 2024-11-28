@@ -9,7 +9,7 @@
 
 // Configurações do buffer de debug
 #define DEBUG_BUFFER_SIZE 128  // Tamanho do buffer para cada mensagem
-#define DEBUG_QUEUE_LENGTH 10  // Quantidade máxima de mensagens no buffer
+#define DEBUG_QUEUE_LENGTH 50  // Quantidade máxima de mensagens no buffer
 
 // Funções para log de debug
 bool logDebugMessage(const char* message,uint8_t taskId);

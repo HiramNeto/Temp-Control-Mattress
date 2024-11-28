@@ -23,6 +23,7 @@ void initializeMutexes(ControllerParameters* controllerParameters_p){
   controllerParameters_p->mutexes.peltierTooColdEmergencyFlag_mutex = xSemaphoreCreateMutex();
   controllerParameters_p->mutexes.peltierWarningTempEmergencyFlag_mutex = xSemaphoreCreateMutex();
   controllerParameters_p->mutexes.tankWaterTempFailedEmergencyFlag_mutex = xSemaphoreCreateMutex();
+  controllerParameters_p->mutexes.heatExchangerTempSensorUnavailableFlag_mutex = xSemaphoreCreateMutex();
   controllerParameters_p->mutexes.tempCtrlUnitStatus_mutex = xSemaphoreCreateMutex();
 }
 
@@ -50,6 +51,7 @@ void initializeControllerVariables(ControllerParameters* controllerParameters_p)
   controllerParameters_p->emergencyFlags.heatExchangerBlockage_b = false;
   controllerParameters_p->emergencyFlags.mattressBlockage_b = false;
   controllerParameters_p->emergencyFlags.peltierTooHot_b = false;
+  controllerParameters_p->emergencyFlags.heatExchangerTempSensorUnavailable_b = false;
   controllerParameters_p->emergencyFlags.peltierTooCold_b = false;
   controllerParameters_p->emergencyFlags.peltierWarningTemp_b = false;
   controllerParameters_p->emergencyFlags.tankTempFail_b = false;
